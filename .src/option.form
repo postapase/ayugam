@@ -1,0 +1,11 @@
+# Gambas Form File 3.0
+
+{ Form Form
+  MoveScaled(0,0,47,19)
+  { SliderBox1 SliderBox
+    MoveScaled(5,4,32,4)
+    MinValue = 10
+    MaxValue = 40
+    Value = 10
+  }
+}

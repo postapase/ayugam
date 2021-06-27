@@ -1,0 +1,219 @@
+' Gambas module file
+
+Public Sub ListaArchivos(RutaOrigen As String, Optional tipo As String) As String[]
+
+  Dim Directorios As String[]
+  Dim Archivos As String[]
+  Dim NombreArchivo As String
+  Dim RutaDir As String
+  Dim RutaArchivos As New String[]
+
+  Archivos = Dir(RutaOrigen, tipo, gb.file)
+
+  For Each NombreArchivo In Archivos
+    Select Case File.Ext(NombreArchivo)
+      Case "class", "module", "form", "webform", "webpage"
+        RutaArchivos.Add(RutaOrigen & "/" & NombreArchivo)
+      Case Else
+    End Select
+  Next
+
+  Directorios = Dir(RutaOrigen, "*", gb.Directory)
+  For Each RutaDir In Directorios
+    RutaArchivos.Insert(ListaArchivos(RutaOrigen & "/" & RutaDir, tipo))
+  Next
+
+  Return RutaArchivos
+
+End
+
+Public Sub analisisfichero(ruta As String, TreeView1 As TreeView)
+
+  '   Dim contenido As String
+  Dim lineas As String[]
+  Dim a, NumLinea As Integer
+  Dim LISTA As String[]
+  Dim Textokey As String[]
+  Dim datoanterior As String
+  Dim sublista As String[]
+
+  ' Public Procedure
+  ' Private Procedure
+  'Class
+
+  lineas = Split(FMain.txtECodigo.Text, "\n", "")
+
+  TreeView1.Add(ruta & "/Public Sub", "Public Sub", Picture["symbol/method.png"], ruta)
+  TreeView1.Add(ruta & "/Static Public Sub", "Static Public Sub", Picture["symbol/s-method.png"], ruta)
+
+  TreeView1.Add(ruta & "/Private Sub", "Private Sub", Picture["symbol/pv-method.png"], ruta)
+  TreeView1.Add(ruta & "/Static Private Sub", "Static Private Sub", Picture["symbol/s-pv-method.png"], ruta)
+
+  TreeView1.Add(ruta & "/Public Function", "Public Function", Picture["symbol/p-fuction .png"], ruta)
+  TreeView1.Add(ruta & "/Static Public Function", "Static Public Function", Picture["symbol/s-p-fuction.png"], ruta)
+
+  TreeView1.Add(ruta & "/Private Function", "Private Function", Picture["symbol/pv-fuction.png"], ruta)
+  TreeView1.Add(ruta & "/Static Private Function", "Static Private Function", Picture["symbol/s-pv-fuction.png"], ruta)
+
+  TreeView1.Add(ruta & "/Eventos", "Eventos", Picture["symbol/event.png"], ruta)
+  TreeView1.Add(ruta & "/Event", "Event", Picture["symbol/d-event.png"], ruta)
+
+  TreeView1.Add(ruta & "/Property", "Property", Picture["symbol/property.png"], ruta)
+  TreeView1.Add(ruta & "/Read-only", "Read-only", Picture["symbol/property-ro.png"], ruta & "/Property")
+  TreeView1.Add(ruta & "/Write-Read", "Write-Read", Picture["symbol/property.png"], ruta & "/Property")
+
+  TreeView1.Add(ruta & "/Variables", "Variables", Picture["symbol/variable.png"], ruta)
+  TreeView1.Add(ruta & "/Publicas", "Publicas", Picture["symbol/variable.png"], ruta & "/Variables")
+  TreeView1.Add(ruta & "/Static Public", "Static Public", Picture["symbol/s-variable.png"], ruta & "/Variables")
+  TreeView1.Add(ruta & "/Privadas", "Privadas", Picture["symbol/pv-variable.png"], ruta & "/Variables")
+  TreeView1.Add(ruta & "/Static Private", "Static Private", Picture["symbol/s-pv-variable.png"], ruta & "/Variables")
+  TreeView1.Add(ruta & "/Local", "Local",, ruta & "/Variables")
+  TreeView1.Add(ruta & "/Constantes", "Constantes", Picture["symbol/constant.png"], ruta)
+  TreeView1.Add(ruta & "/Private", "Private", Picture["symbol/pv-constant.png"], ruta & "/Constantes")
+  TreeView1.Add(ruta & "/Public", "Public", Picture["symbol/constant.png"], ruta & "/Constantes")
+
+  TreeView1.Add(ruta & "/Enum", "Enum", Picture["symbol/Enum.png"], ruta & "/Variables")
+
+  For a = 0 To lineas.Max
+
+    '     Print "[" & a & "]--->" & lineas[a]
+
+    lineas[a] = Trim(lineas[a])
+    NumLinea = a + 1
+
+    LISTA = Scan(lineas[a], FMain.PUBLIC_SUB)
+
+    If LISTA.count > 0 Then
+      Textokey = Split(LISTA[0], "(")
+      sublista = Scan(LISTA[0], "*_*")
+      If sublista.count = 0 Then
+        TreeView1.Add(ruta & "/Public Sub" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/method.png"], ruta & "/Public Sub")
+        Continue
+      Else
+        'Eventos
+        TreeView1.Add(ruta & "/Eventos" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/event.png"], ruta & "/Eventos")
+        Continue
+      Endif
+
+    Endif
+
+    LISTA = Scan(lineas[a], FMain.PRIVATE_SUB)
+
+    If LISTA.count > 0 Then
+      Textokey = Split(LISTA[0], "(")
+      TreeView1.Add(ruta & "/Private Sub" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/pv-method.png"], ruta & "/Private Sub")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], FMain.PUBLIC_FUNCTION)
+    If LISTA.count > 0 Then
+      Textokey = Split(LISTA[0], "(")
+      TreeView1.Add(ruta & "/Public Function" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/p-fuction .png"], ruta & "/Public Function")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], FMain.PRIVATE_FUNCTION)
+    If LISTA.count > 0 Then
+      Textokey = Split(LISTA[0], "(")
+      TreeView1.Add(ruta & "/Private Function" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/pv-fuction.png"], ruta & "/Private Function")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], FMain.STATIC_PUBLIC_SUB)
+    If LISTA.count > 0 Then
+      Textokey = Split(LISTA[0], "(")
+      TreeView1.Add(ruta & "/Static Public Sub" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/s-method.png"], ruta & "/Static Public Sub")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Static Public * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Static Public" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/s-variable.png"], ruta & "/Static Public")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], FMain.STATIC_PRIVATE_SUB)
+    If LISTA.count > 0 Then
+      Textokey = Split(LISTA[0], "(")
+      TreeView1.Add(ruta & "/Static Private Sub" & LISTA[0], Textokey[0] & " *" & Str$(NumLinea), Picture["symbol/s-pv-method.png"], ruta & "/Static Private Sub")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Static Private * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Static Private" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/s-pv-variable.png"], ruta & "/Static Private")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Public Const * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Public" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/constant.png"], ruta & "/Public")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Private Const * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Private" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/pv-constant.png"], ruta & "/Private")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Public * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Publicas" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/variable.png"], ruta & "/Publicas")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Private * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Privadas" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/pv-variable.png"], ruta & "/Privadas")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Property Read * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Read-only" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/property-ro.png"], ruta & "/Read-only")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Property * As *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Write-Read" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/property.png"], ruta & "/Write-Read")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "* Enum *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Enum" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/Enum.png"], ruta & "/Enum")
+      Continue
+    Endif
+
+    LISTA = Scan(lineas[a], "Event *")
+    If LISTA.count > 0 Then
+      TreeView1.Add(ruta & "/Event" & LISTA[0], LISTA[0] & " *" & Str$(NumLinea), Picture["symbol/d-event.png"], ruta & "/Event")
+      Continue
+    Endif
+    ' LISTA = Scan(lineas[a], "DIM * AS *")
+    ' If LISTA.count > 0 Then
+    '   If TreeView1.Exist(ruta & "/local" & LISTA[0]) Then
+    '     datoanterior = TreeView1[ruta & "/local" & LISTA[0]].Text
+    '
+    '     datoanterior &= " *" & Str$(a)
+    '     TreeView1.Remove(ruta & "/local" & LISTA[0])
+    '     TreeView1.Add(ruta & "/local" & LISTA[0], datoanterior, Picture["symbol/unknown.png"], ruta & "/local")
+    '
+    '     Continue
+    '   Else
+    '     TreeView1.Add(ruta & "/local" & LISTA[0], LISTA[0] & " *" & Str$(a), Picture["symbol/unknown.png"], ruta & "/local")
+    '
+    '     Continue
+    '   Endif
+    '
+    ' Endif
+
+  Next
+
+Catch
+  FMain.msg.Close()
+  FMain.msg.Open(Error.Text & "<br>" & Error.Where & "<br>" & File.Name(ruta))
+
+End

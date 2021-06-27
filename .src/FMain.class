@@ -1,0 +1,542 @@
+' Gambas class file
+
+Public Const PUBLIC_SUB As String = "Public Sub *"
+Public Const STATIC_PUBLIC_SUB As String = "Static Public Sub *"
+Public Const PUBLIC_SUB__NEW As String = "Public Sub _new *"
+Public Const PUBLIC_FUNCTION As String = "Public Function *"
+
+Public Const PRIVATE_FUNCTION As String = "Private Function *"
+Public Const STATIC_PRIVATE_FUNCTION As String = "Static Private Function *"
+Public Const PRIVATE_SUB As String = "Private Sub *"
+Public Const STATIC_PRIVATE_SUB As String = "Static Private Sub *"
+
+Public Const PUBLIC_CONST As String = "Public Const * As *"
+
+Public ModoBandejaActivar As Boolean
+
+Private $iStartLine As Integer
+Private $iStartColumn As Integer
+Private $iEndLine As Integer
+Private $iEndColumn As Integer
+
+Public Sub ArmarArbol()
+
+  TreeView1.Clear()
+
+  TreeView1.Add("Proyecto", "Proyecto")
+  TreeView1.Item.Expanded = True
+  TreeView1.Add("Class", "Class", Picture["clases/class.png"], "Proyecto")
+  TreeView1.Add("Form", "Form", Picture["clases/form.png"], "Proyecto")
+  TreeView1.Add("Module", "Module", Picture["clases/module.png"], "Proyecto")
+  TreeView1.Add("Report", "Report", Picture["clases/report.png"], "Proyecto")
+  TreeView1.Add("Webpage", "Webpage", Picture["clases/webpage.png"], "Proyecto")
+  TreeView1.Add("Webform", "Webform", Picture["clases/webform.png"], "Proyecto")
+
+End
+
+Private Sub ExtraerDatos(archivo As String, KeyPadre As String)
+
+  Dim texto As String
+  Dim lineas As String[]
+
+  texto = File.Load(archivo)
+
+  lineas = Split(texto, gb.NewLine)
+
+End
+
+Public Sub DirBox1_Click()
+
+  Print DirBox1.Value
+
+End
+
+Public Sub Form_Open()
+
+  Message.Warning("Proyecto experimental use bajo su riesgo" &
+    gb.NewLine & "Experimental project use at your risk")
+
+  TextLabel1.Text = "v. " & Application.Version
+  HSplit1.Layout = [1, 3]
+
+End
+
+Public Sub TreeView1_DblClick()
+
+  Dim corte As String[]
+  Dim linea As Integer
+
+  Print TreeView1.Current.Key
+  Print TreeView1.Current.Text
+  Print File.Ext(TreeView1.Current.Key)
+  '   Print "parent=" & TreeView1.Item.ParentKey
+  '
+  Select Case TreeView1.Current.Key
+    Case "Form", "Class", "Module"
+      Return
+    Case Else
+  End Select
+
+  If Exist(TreeView1.Current.Key) Then
+    txtECodigo.Load(TreeView1.Current.Key)
+  Else
+    If InStr(TreeView1.Current.Text, "*") Then
+      corte = Split(TreeView1.Current.Text, "*", Null, True)
+      linea = CInt(corte[1])
+      txtECodigo.ExpandAll()
+      txtECodigo.ToLine(linea)
+      txtECodigo.GotoCenter(0, linea - 1)
+      Return
+    Else
+      Return
+    Endif
+  Endif
+
+  Select Case File.Ext(TreeView1.Current.Key)
+    Case "form", "webform", "webpage"
+      Return
+    Case Else
+      sub1.analisisfichero(TreeView1.Current.Key, TreeView1)
+  End Select
+
+End
+
+Public Sub Button2_Click()
+
+  txtECodigo.CollapseAll()
+
+End
+
+Public Sub Button5_Click()
+
+  txtECodigo.ExpandAll()
+
+End
+
+Public Sub btnSaveAs_Click()
+
+  If Dialog.SaveFile() Then Return
+
+  File.Save(Dialog.Path, txtECodigo.Text)
+
+End
+
+Public Sub btnComment_Click()
+
+  Dim iStartLine As Integer
+  Dim iEndLine As Integer
+  Dim iLine As Integer
+  Dim iIndent As Integer
+
+  '   If txtECodigo.ReadOnly Then Return
+  'IF NOT Editor.Selected THEN RETURN
+
+  If txtECodigo.Selected Then
+    '     txtECodigo.StoreSelection
+    StoreSelection()
+    iStartLine = Min(txtECodigo.SelectionLine, txtECodigo.Line)
+    iEndLine = Max(txtECodigo.SelectionLine, txtECodigo.Line)
+
+    iIndent = GetIndentWidth(iStartLine, iEndLine)
+
+    txtECodigo.Begin
+    For iLine = iStartLine To iEndLine - 1
+      txtECodigo[iLine].Text = Space$(iIndent) & "' " & Mid$(txtECodigo[iLine].Text, iIndent + 1)
+    Next
+    txtECodigo.End
+    'Modify
+
+    RecallSelection
+  Else
+    'Comment only the current line
+    iLine = txtECodigo.Line
+    txtECodigo[iLine].Text = Space$(iIndent) & "' " & Mid$(txtECodigo[iLine].Text, iIndent + 1)
+  Endif
+
+End
+
+Public Sub StoreSelection(Optional bNoFullLines As Boolean)
+
+  With txtECodigo
+
+    $iStartLine = .SelectionLine
+    $iStartColumn = .SelectionColumn
+    $iEndLine = .Line
+    $iEndColumn = .Column
+
+    If Not bNoFullLines Then
+      If $iEndLine >= $iStartLine Then
+        If $iEndColumn > 0 Or Not .Selected Then
+          Inc $iEndLine
+          $iEndColumn = 0
+          $iStartColumn = 0
+          RecallSelection
+        Endif
+      Else
+        If $iStartColumn > 0 Or Not .Selected Then
+          Inc $iStartLine
+          $iStartColumn = 0
+          $iEndColumn = 0
+          RecallSelection
+        Endif
+      Endif
+    Endif
+
+  End With
+
+End
+
+Public Sub RecallSelection()
+
+  txtECodigo.Goto($iStartColumn, $iStartLine)
+  txtECodigo.Goto($iEndColumn, $iEndLine, True)
+
+End
+
+Private Sub GetIndentWidth(iStart As Integer, iEnd As Integer) As Integer
+
+  Dim iLine As Integer
+  Dim sLine As String
+  Dim iInd As Integer
+  Dim iIndent As Integer = 0
+
+  For iLine = iStart To iEnd - 1
+    sLine = txtECodigo[iLine].Text
+    If LTrim(sLine) Then
+      iInd = Len(sLine) - Len(LTrim(sLine))
+      If iIndent = 0 Then
+        iIndent = iInd
+      Else
+        iIndent = Min(iIndent, iInd)
+      Endif
+      If iIndent = 0 Then Break
+    Endif
+  Next
+
+  Return iIndent
+
+End
+
+Public Sub btnUncomment_Click()
+
+  Dim iLine As Integer
+  Dim sLine As String
+  Dim iIndent As Integer
+  Dim iStartLine As Integer
+  Dim iEndLine As Integer
+
+  '   If txtECodigo.ReadOnly Then Return
+  'IF NOT Editor.Selected THEN RETURN
+
+  If txtECodigo.Selected Then
+    StoreSelection
+
+    iStartLine = Min(txtECodigo.SelectionLine, txtECodigo.Line)
+    iEndLine = Max(txtECodigo.SelectionLine, txtECodigo.Line)
+
+    iIndent = GetIndentWidth(iStartLine, iEndLine)
+
+    For iLine = iStartLine To iEndLine - 1
+      sLine = txtECodigo[iLine].Text
+      If Len(sLine) < (iIndent + 1) Then Break
+      If Left(LTrim(sLine), 1) <> "'" Then Break
+    Next
+
+    If iLine = iEndLine Then
+      txtECodigo.Begin
+      For iLine = iStartLine To iEndLine - 1
+        If Left(LTrim(txtECodigo[iLine].Text), 2) = "' " Then
+          txtECodigo[iLine].Text = Space$(iIndent) & Mid$(LTrim(txtECodigo[iLine].Text), 3)
+        Else
+          txtECodigo[iLine].Text = Space$(iIndent) & Mid$(LTrim(txtECodigo[iLine].Text), 2)
+        Endif
+      Next
+      txtECodigo.End
+      'Modify
+    Endif
+
+    RecallSelection
+  Else
+    iLine = txtECodigo.Line
+    sLine = txtECodigo[iLine].Text
+    If Len(sLine) < (iIndent + 1) Then Return
+    If Left(LTrim(sLine), 1) <> "'" Then Return
+    If Left(LTrim(txtECodigo[iLine].Text), 2) = "' " Then
+      txtECodigo[iLine].Text = Space$(iIndent) & Mid$(LTrim(txtECodigo[iLine].Text), 3)
+    Else
+      txtECodigo[iLine].Text = Space$(iIndent) & Mid$(LTrim(txtECodigo[iLine].Text), 2)
+    Endif
+  Endif
+
+End
+
+Public Sub LoadProyect(sDir As String)
+
+  Dim ArchClass As String[]
+  Dim arch As String
+  Dim contClass, contModule, contForm As Integer
+  Dim contReport, contWebform, contWebpage As Integer
+
+  If sDir = "" Then Return
+
+  If Not Exist(sDir) Then
+    FMain.msg.Open("Carpeta no existe")
+    Return
+  Endif
+
+  Application.Busy = 1
+
+  txtECodigo.Clear()
+  ArmarArbol()
+
+  ArchClass = sub1.ListaArchivos(sDir)
+
+  For Each arch In ArchClass
+    Print arch
+    Print File.Ext(arch)
+    Select Case File.Ext(arch)
+      Case "class"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/class.png"], "Class")
+        Inc contClass
+      Case "module"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/module.png"], "Module")
+        Inc contModule
+      Case "form"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/form.png"], "Form")
+        Inc contForm
+      Case "report"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/report.png"], "Report")
+        Inc contReport
+      Case "webform"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/webform.png"], "Webform")
+        Inc contWebform
+      Case "webpage"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/webpage.png"], "Webpage")
+        Inc contWebpage
+      Case Else
+        Print "error ---->" & File.Ext(arch)
+    End Select
+  Next
+
+  Application.Busy = 0
+
+  Print contClass
+  Print contModule
+  Print contForm
+  Print contReport
+  Print contWebform
+  Print contWebpage
+
+End
+
+Public Sub btnCargar_Click()
+
+  Dim ArchClass As String[]
+  Dim arch As String
+  Dim contClass, contModule, contForm As Integer
+  Dim contReport, contWebform, contWebpage As Integer
+
+  If DirBox1.Value = "" Then Return
+
+  If Not Exist(DirBox1.Value) Then
+    FMain.msg.Open("Carpeta no existe")
+    Return
+  Endif
+
+  Application.Busy = 1
+
+  txtECodigo.Clear()
+  ArmarArbol()
+
+  ArchClass = sub1.ListaArchivos(DirBox1.Value)
+
+  For Each arch In ArchClass
+    Print arch
+    Print File.Ext(arch)
+    Select Case File.Ext(arch)
+      Case "class"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/class.png"], "Class")
+        Inc contClass
+      Case "module"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/module.png"], "Module")
+        Inc contModule
+      Case "form"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/form.png"], "Form")
+        Inc contForm
+      Case "report"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/report.png"], "Report")
+        Inc contReport
+      Case "webform"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/webform.png"], "Webform")
+        Inc contWebform
+      Case "webpage"
+        TreeView1.Add(arch, File.BaseName(arch), Picture["clases/webpage.png"], "Webpage")
+        Inc contWebpage
+      Case Else
+        Print "error ---->" & File.Ext(arch)
+    End Select
+  Next
+
+  Application.Busy = 0
+
+  Print contClass
+  Print contModule
+  Print contForm
+  Print contReport
+  Print contWebform
+  Print contWebpage
+
+End
+
+Public Sub Panel4_MouseDown()
+
+End
+
+Public Sub btnCollapseAll_Click()
+
+End
+
+Public Sub txtECodigo_Menu()
+
+  If Mouse.Control Then Return
+
+  mnuEdit.Popup
+
+End
+
+Public Sub mnuCopy_Click()
+
+  txtECodigo.Copy()
+
+End
+
+Public Sub btnUndo_Click()
+
+  txtECodigo.Undo
+
+End
+
+Public Sub btnRedo_Click()
+
+  txtECodigo.Redo
+
+End
+
+Public Sub mnuPaste_Click()
+
+  txtECodigo.Paste
+
+End
+
+Public Sub btnOption_Click()
+
+  option.ShowModal()
+
+End
+
+Public Sub mnuQuit_Click()
+
+  Quit
+
+End
+
+Public Sub TrayIcon1_Click()
+
+  ModoBandejaActivar = Not ModoBandejaActivar
+
+  If ModoBandejaActivar Then
+    Me.Hide
+  Else
+    Me.Show
+  Endif
+
+End
+
+Public Sub Button1_Click()
+
+  TrayIcon1.Show
+
+  ModoBandejaActivar = True
+
+End
+
+Public Sub ComboBox1_Click()
+
+  Select Case ComboBox1.Index
+    Case 0
+      HSplit1.Layout = [1, 3]
+    Case 1
+      HSplit1.Layout = [1, 2]
+    Case 2
+      HSplit1.Layout = [1, 1]
+    Case 3
+      HSplit1.Layout = [1, 0]
+    Case 4
+      HSplit1.Layout = [3, 1]
+    Case 5
+      HSplit1.Layout = [2, 1]
+    Case 6
+      HSplit1.Layout = [0, 1]
+    Case Else
+      HSplit1.Layout = [1, 3]
+  End Select
+
+End
+
+Public Sub mnuPlaces_Show()
+
+  mnuDownloadedProjects.Tag = mPlaces.GetDirSrc()
+
+End
+
+Public Sub menuPlaces()
+
+End
+
+Public Sub mnuOpen_Click()
+
+End
+
+Public Sub mnuOpenSrc_Click()
+
+  Print mPlaces.GetDir
+  Dialog.Path = mPlaces.GetDirSrc()
+
+  If Dialog.SelectDirectory() Then Return
+
+  Print "dir proyecto: " & Dialog.Path
+
+  If Exist(Dialog.Path &/ ".project") Then
+    LoadProyect(Dialog.Path)
+  Else
+    Message.Error("Esta carpeta no contiene un proyecto gambas!!")
+    Me.Activate
+  Endif
+
+End
+
+Public Sub places_Click()
+
+  Shell "xdg-open " & Last.Tag
+
+End
+
+Public Sub Button13_Click()
+
+End
+
+Public Sub Button12_Click()
+
+End
+
+Public Sub Button11_Click()
+
+End
+
+Public Sub Button10_Click()
+
+End
+
+Public Sub Button9_Click()
+
+End

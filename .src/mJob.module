@@ -1,0 +1,7 @@
+' Gambas module file
+
+Public Sub DirIsProyect(sDir As String) As Boolean
+
+  Return Exist(sDir &/ ".project")
+
+End

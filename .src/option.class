@@ -1,0 +1,7 @@
+' Gambas class file
+
+Public Sub SliderBox1_Change()
+
+  FMain.txtECodigo.Font.Size = SliderBox1.Value
+
+End
